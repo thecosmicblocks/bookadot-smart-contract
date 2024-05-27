@@ -1,3 +1,5 @@
+import { BookadotEIP712Test } from './../build/types/BookadotEIP712Test';
+import { BookadotEIP712 } from './../build/types/BookadotEIP712';
 import { expect, use } from 'chai'
 import { ethers } from 'hardhat'
 import { describe, it } from 'mocha'
@@ -25,8 +27,8 @@ const types = {
 
 let signer: SignerWithAddress
 let signerAddress: string
-let bookadotEIP712: Contract
-let bookadotEIP712Test: Contract
+let bookadotEIP712: BookadotEIP712
+let bookadotEIP712Test: BookadotEIP712Test
 let chainId: number
 
 beforeEach(async function () {
@@ -35,7 +37,7 @@ beforeEach(async function () {
   signerAddress = signer.address
 
   let BookadotEIP712 = await ethers.getContractFactory('BookadotEIP712')
-  bookadotEIP712 = await BookadotEIP712.deploy()
+  bookadotEIP712 = await BookadotEIP712.deploy() as BookadotEIP712
   await bookadotEIP712.deployed()
 
   let BookadotEIP712Test = await ethers.getContractFactory('BookadotEIP712Test', {
@@ -43,7 +45,7 @@ beforeEach(async function () {
       BookadotEIP712: bookadotEIP712.address,
     },
   })
-  bookadotEIP712Test = await BookadotEIP712Test.deploy(signerAddress)
+  bookadotEIP712Test = await BookadotEIP712Test.deploy(signerAddress) as BookadotEIP712Test
   await bookadotEIP712Test.deployed()
 
   chainId = (await ethers.provider.getNetwork()).chainId

@@ -1,16 +1,20 @@
+import { BookadotTokenTest } from './../build/types/BookadotTokenTest';
+import { BookadotProperty } from './../build/types/BookadotProperty';
 import { expect, use } from 'chai'
 import { ethers } from 'hardhat'
 import { describe, it } from 'mocha'
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { BookadotConfig } from '../build/types/BookadotConfig';
+import { BookadotFactory } from '../build/types/BookadotFactory';
 
 use(solidity)
 
-let bookadotProperty: Contract
-let bookadotConfig: Contract
-let bookadotFactory: Contract
-let bookadotTokenTest: Contract
+let bookadotProperty: BookadotProperty
+let bookadotConfig: BookadotConfig
+let bookadotFactory: BookadotFactory
+let bookadotTokenTest: BookadotTokenTest
 let chainId: number
 let treasuryAddress: string
 let hostAddress: string
@@ -22,7 +26,7 @@ beforeEach(async function () {
   hostAddress = signers[2].address
 
   let BookadotTokenTest = await ethers.getContractFactory('BookadotTokenTest')
-  bookadotTokenTest = await BookadotTokenTest.deploy(BigInt('1000000000000000000000000'))
+  bookadotTokenTest = await BookadotTokenTest.deploy(BigInt('1000000000000000000000000')) as BookadotTokenTest
   await bookadotTokenTest.deployed()
 
   let BookadotConfig = await ethers.getContractFactory('BookadotConfig')
@@ -31,7 +35,7 @@ beforeEach(async function () {
     24 * 60 * 60, // 1 day
     treasuryAddress,
     [bookadotTokenTest.address]
-  )
+  ) as BookadotConfig
   await bookadotConfig.deployed()
 
   const BookadotEIP712 = await ethers.getContractFactory('BookadotEIP712')
@@ -43,13 +47,13 @@ beforeEach(async function () {
       BookadotEIP712: bookadotEIP712.address
     }
   })
-  bookadotFactory = await BookadotFactory.deploy(bookadotConfig.address)
+  bookadotFactory = await BookadotFactory.deploy(bookadotConfig.address) as BookadotFactory
   await bookadotFactory.deployed()
 
   let deployPropertyTx = await bookadotFactory.deployProperty([propertyId], hostAddress)
   let deployPropertyTxResult = await deployPropertyTx.wait()
 
-  bookadotProperty = await getDeployedPropertyContractFromTransaction(deployPropertyTxResult)
+  bookadotProperty = await getDeployedPropertyContractFromTransaction(deployPropertyTxResult) as BookadotProperty
 
   chainId = (await ethers.provider.getNetwork()).chainId
 })

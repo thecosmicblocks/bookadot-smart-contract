@@ -69,7 +69,7 @@ contract BookadotConfig is Ownable {
     }
 
     function updateBookadotOperator(address _operator, bool _permission) external onlyOwner {
-        require(_operator != address(0), "Config: backend is zero address");
+        require(_operator != address(0), "Config: operator is zero address");
         bookadotOperator[_operator] = _permission;
         emit UpdatedOperator(_operator, _permission);
     }

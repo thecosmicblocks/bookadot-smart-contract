@@ -1,3 +1,4 @@
+import { BookadotConfig } from './../build/types/BookadotConfig';
 import { expect, use } from 'chai'
 import { ethers } from 'hardhat'
 import { describe, it } from 'mocha'
@@ -6,7 +7,7 @@ import { Contract } from 'ethers'
 
 use(solidity)
 
-let bookadotConfig: Contract
+let bookadotConfig: BookadotConfig
 let treasuryAddress: string
 const zeroAddress = '0x0000000000000000000000000000000000000000'
 const tokenAddress = '0x9CAC127A2F2ea000D0AcBA03A2A52Be38F8ea3ec'
@@ -17,11 +18,12 @@ beforeEach(async function () {
 
   let BookadotConfig = await ethers.getContractFactory('BookadotConfig')
   bookadotConfig = await BookadotConfig.deploy(
+    [signers[0].address],
     500,
     24 * 60 * 60,
     treasuryAddress,
     [tokenAddress]
-  )
+  ) as unknown as BookadotConfig
   await bookadotConfig.deployed()
 })
 
@@ -46,7 +48,7 @@ describe('BookadotConfig', function () {
     it('intialize with valid Bookadot backend address', async function () {
       let signers = await ethers.getSigners()
       let defaultSignerAddress = signers[0].address
-      expect(await bookadotConfig.bookadotOperator()).to.equal(defaultSignerAddress)
+      expect(await bookadotConfig.bookadotOperator(defaultSignerAddress)).to.equal(true)
     })
   })
 
@@ -144,28 +146,29 @@ describe('BookadotConfig', function () {
     })
   })
 
-  describe('Verify update Bookadot backend address', function () {
-    it('should update Bookadot backend address with valid value', async function () {
+  describe('Verify update Bookadot operator address', function () {
+    it('should update Bookadot operator address with valid value', async function () {
       let signers = await ethers.getSigners()
-      const newBackendAddress = signers[2].address
+      const newOperatorAddress = signers[2].address
+      const permission = true
 
-      let updateBackendTx = await bookadotConfig.updateBookadotOperator(newBackendAddress)
+      let updateBackendTx = await bookadotConfig.updateBookadotOperator(newOperatorAddress, permission)
       await updateBackendTx.wait()
 
-      expect(await bookadotConfig.bookadotOperator()).to.equal(newBackendAddress)
+      expect(await bookadotConfig.bookadotOperator(newOperatorAddress)).to.equal(permission)
     })
 
-    it('should not update Bookadot backend address with zero address', async function () {
-      await expect(bookadotConfig.updateBookadotOperator(zeroAddress)).to.be.revertedWith('Config: backend is zero address')
+    it('should not update Bookadot operator address with zero address', async function () {
+      await expect(bookadotConfig.updateBookadotOperator(zeroAddress, true)).to.be.revertedWith('Config: operator is zero address')
     })
 
-    it('only owner be able to update Bookadot backend address', async function () {
+    it('only owner be able to update Bookadot operator address', async function () {
       let signers = await ethers.getSigners()
-      const newBackendAddress = signers[2].address
+      const newOperatorAddress = signers[2].address
 
       let newSignerBookadotConfig = await connectContractToNewSigner(bookadotConfig)
 
-      await expect(newSignerBookadotConfig.updateBookadotOperator(newBackendAddress)).to.be.revertedWith('Ownable: caller is not the owner')
+      await expect(newSignerBookadotConfig.updateBookadotOperator(newOperatorAddress, true)).to.be.revertedWith('Ownable: caller is not the owner')
     })
   })
 })

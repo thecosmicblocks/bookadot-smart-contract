@@ -1,13 +1,15 @@
+import { BookadotFactory } from './../build/types/BookadotFactory';
 import { expect, use } from 'chai'
 import { ethers } from 'hardhat'
 import { describe, it } from 'mocha'
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Wallet } from 'ethers'
+import { BookadotConfig } from '../build/types/BookadotConfig'
 
 use(solidity)
 
-let bookadotConfig: Contract
-let bookadotFactory: Contract
+let bookadotConfig: BookadotConfig
+let bookadotFactory: BookadotFactory
 let hostAddress: string
 const propertyId = BigNumber.from(1)
 
@@ -18,11 +20,12 @@ beforeEach(async function () {
 
   let BookadotConfig = await ethers.getContractFactory('BookadotConfig')
   bookadotConfig = await BookadotConfig.deploy(
+    [signers[0].address],
     500,
     24 * 60 * 60,
     treasuryAddress,
     ['0x9CAC127A2F2ea000D0AcBA03A2A52Be38F8ea3ec']
-  )
+  ) as BookadotConfig
   await bookadotConfig.deployed()
 
   const BookadotEIP712 = await ethers.getContractFactory('BookadotEIP712')
@@ -34,7 +37,7 @@ beforeEach(async function () {
       BookadotEIP712: bookadotEIP712.address
     }
   })
-  bookadotFactory = await BookadotFactory.deploy(bookadotConfig.address)
+  bookadotFactory = await BookadotFactory.deploy(bookadotConfig.address) as BookadotFactory
   await bookadotFactory.deployed()
 })
 
@@ -52,10 +55,10 @@ describe('BookadotFactory', function () {
       let newSigner = signers[1]
       let newSignerBookadotFactory = bookadotFactory.connect(newSigner)
 
-      await expect(newSignerBookadotFactory.deployProperty([propertyId], hostAddress)).to.be.revertedWith('Factory: caller is not the owner or backend')
+      await expect(newSignerBookadotFactory.deployProperty([propertyId], hostAddress)).to.be.revertedWith('Factory: caller is not the owner or operator')
 
       /// update new Bookadot backend address
-      let updateBackendTx = await bookadotConfig.updateBookadotBackend(newSigner.address)
+      let updateBackendTx = await bookadotConfig.updateBookadotOperator(newSigner.address, true)
       await updateBackendTx.wait()
 
       let deployPropertyTx = await newSignerBookadotFactory.deployProperty([propertyId], hostAddress)
