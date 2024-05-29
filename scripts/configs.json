@@ -1,0 +1,30 @@
+{
+    "bookadot_config": {
+        "address": "0xf70078Cc41bC247c33bb7F8933C441D02F8F39A0",
+        "config": [
+            [
+                "0x4F86Eb9C21b0F44e3595C969c24f7E458AB3D890"
+            ],
+            500,
+            604800,
+            "0x4F86Eb9C21b0F44e3595C969c24f7E458AB3D890",
+            [
+                "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+            ]
+        ]
+    },
+    "bookadot_factory": {
+        "address": "0xC0497128F03a04531E2005a52aE7BCc2B940135F",
+        "config": [
+            "0xf70078Cc41bC247c33bb7F8933C441D02F8F39A0"
+        ]
+    },
+    "bookadot_lens": {
+        "address": "0xa51AAF36BF609c5190539661f111dBE71E6Bb64f",
+        "config": [
+            "0xc1f8b194796f2220ba5dfb27fc051d30bf999585"
+        ],
+        "attestor": "0xc1f8b194796f2220ba5dfb27fc051d30bf999585",
+        "workflowId": "1"
+    }
+}
