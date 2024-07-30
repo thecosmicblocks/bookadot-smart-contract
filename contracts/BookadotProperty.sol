@@ -2,12 +2,13 @@
 
 pragma solidity >=0.8.4 <0.9.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./interfaces/IBookadotConfig.sol";
-import "./interfaces/IBookadotFactory.sol";
-import "./BookadotStructs.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { IBookadotConfig } from "./interfaces/IBookadotConfig.sol";
+import { IBookadotFactory } from "./interfaces/IBookadotFactory.sol";
+import {IBookadotTicket} from "./interfaces/IBookadotTicket.sol";
+import { Booking, BookingParameters, BookingStatus } from "./BookadotStructs.sol";
 
 contract BookadotProperty is Ownable, ReentrancyGuard {
     uint256 public id; // property id
@@ -17,6 +18,7 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
     IBookadotFactory private factoryContract; // factory contract
     address host; // host address
     mapping(address => bool) public hostDelegates; // addresses authorized by the host to act in the host's behalf
+    IBookadotTicket ticket;
 
     /**
     @param _id Property Id
@@ -24,11 +26,18 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
     @param _factory Contract address of BookadotFactory
     @param _host Wallet address of the owner of this property
     */
-    constructor(uint256 _id, address _config, address _factory, address _host) {
+    constructor(
+        uint256 _id,
+        address _config,
+        address _factory,
+        address _host,
+        address _ticket
+    ) {
         id = _id;
         configContract = IBookadotConfig(_config);
         factoryContract = IBookadotFactory(_factory);
         host = _host;
+        ticket = IBookadotTicket(_ticket);
     }
 
     /**
@@ -51,10 +60,10 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
         hostDelegates[delegate] = false;
     }
 
-    function _validateBookingParameters(
-        BookingParameters memory _params,
-        bytes memory _signature
-    ) private returns (bool) {
+    function _validateBookingParameters(BookingParameters memory _params, bytes memory _signature)
+        private
+        returns (bool)
+    {
         require(bookingsMap[_params.bookingId] == 0, "Property: Booking already exists");
         require(block.timestamp < _params.bookingExpirationTimestamp, "Property: Booking data is expired");
         require(configContract.supportedTokens(_params.token), "Property: Token is not whitelisted");

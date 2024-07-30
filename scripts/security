@@ -8,10 +8,14 @@
 
 mkdir -p reports
 
-pip3 install --user slither-analyzer && \
-yarn build && \
+docker run \
+    --name slither-analysis \
+    -v $(pwd):/app/bookadot-smart-contract \
+    trailofbits/eth-security-toolbox \
+    slither /app/bookadot-smart-contract \
+    &> reports/slither-analyzer-report.log
 
-echo "Analyzing contracts..."
-slither . &> reports/analyzer-report.log && \
+docker rm slither-analysis
 
-echo "Done!"
+echo "Slither analyzed"
+echo "Done"

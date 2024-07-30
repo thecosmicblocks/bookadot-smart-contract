@@ -32,12 +32,7 @@ library BookadotEIP712 {
             chainId := chainid()
         }
         bytes32 domainSeperator = hashDomain(
-            EIP712Domain({
-                name: "Bookadot Booking",
-                version: "1",
-                chainId: chainId,
-                verifyingContract: verifyingContract
-            })
+            EIP712Domain({ name: "Bookadot", version: "1", chainId: chainId, verifyingContract: verifyingContract })
         );
         address signer = recoverSigner(parameters, domainSeperator, signature);
         if (signer != authorizedSigner) {
@@ -111,7 +106,15 @@ library BookadotEIP712 {
         return signer;
     }
 
-    function splitSignature(bytes memory sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
+    function splitSignature(bytes memory sig)
+        internal
+        pure
+        returns (
+            bytes32 r,
+            bytes32 s,
+            uint8 v
+        )
+    {
         require(sig.length == 65, "EIP712: invalid signature length");
         assembly {
             /*

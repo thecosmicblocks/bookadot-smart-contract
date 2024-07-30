@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.4 <0.9.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract BookadotConfig is Ownable {
     uint256 public fee; // fee percentage 5% -> 500, 0.1% -> 10
@@ -19,14 +19,12 @@ contract BookadotConfig is Ownable {
     event RemovedSupportedToken(address token);
 
     constructor(
-        address[] memory _defaultOperators,
         uint256 _fee,
-        uint256 _payoutDelayTime,
         address _treasury,
+        address[] memory _defaultOperators,
         address[] memory _tokens
     ) {
         fee = _fee;
-        payoutDelayTime = _payoutDelayTime;
         bookadotTreasury = _treasury;
         for (uint256 i = 0; i < _defaultOperators.length; i++) {
             bookadotOperator[_defaultOperators[i]] = true;

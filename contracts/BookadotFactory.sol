@@ -2,14 +2,16 @@
 
 pragma solidity >=0.8.4 <0.9.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IBookadotConfig.sol";
-import "./BookadotProperty.sol";
-import "./BookadotStructs.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IBookadotConfig } from "./interfaces/IBookadotConfig.sol";
+import { BookadotProperty } from "./BookadotProperty.sol";
 import { BookadotEIP712 } from "./BookadotEIP712.sol";
+import {IBookadotTicketFactory} from "./interfaces/IBookadotTicketFactory.sol";
+import "./BookadotStructs.sol";
 
 contract BookadotFactory is Ownable {
     address public configContract;
+    IBookadotTicketFactory ticketFactory;
     mapping(address => bool) private propertyMapping;
 
     event PropertyCreated(uint256[] ids, address[] properties, address host);
@@ -32,8 +34,9 @@ contract BookadotFactory is Ownable {
         uint8 payoutType // 1: full payout, 2: partial payout
     );
 
-    constructor(address _config) {
+    constructor(address _config, address _ticketFactory) {
         configContract = _config;
+        ticketFactory = IBookadotTicketFactory(_ticketFactory);
     }
 
     modifier onlyMatchingProperty() {
@@ -50,12 +53,27 @@ contract BookadotFactory is Ownable {
         _;
     }
 
-    function deployProperty(uint256[] calldata _ids, address _host) external onlyOwnerOrbookadotOperator {
+    function deployProperty(
+        uint256[] calldata _ids,
+        address _host,
+        bytes memory _ticketData
+    )
+        external
+        onlyOwnerOrbookadotOperator 
+    {
         require(_ids.length > 0, "Factory: Invalid property ids");
         require(_host != address(0), "Factory: Host address is invalid");
         address[] memory properties = new address[](_ids.length);
         for (uint256 i = 0; i < _ids.length; i++) {
-            BookadotProperty property = new BookadotProperty(_ids[i], configContract, address(this), _host);
+            address ticketAddr = ticketFactory.deployTicket(_ids[i], _ticketData);
+
+            BookadotProperty property = new BookadotProperty(
+                _ids[i],
+                configContract,
+                address(this),
+                _host,
+                ticketAddr
+            );
             propertyMapping[address(property)] = true;
             properties[i] = address(property);
         }

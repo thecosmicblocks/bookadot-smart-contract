@@ -644,7 +644,7 @@ async function generateBookingParam(bookingId: string, bookingAmount: BigNumber,
   let checkOutTimestamp = Math.round(checkOutDate.getTime() / 1000)
 
   const domain = {
-    name: 'Bookadot Booking',
+    name: 'Bookadot',
     version: '1',
     chainId: chainId,
     verifyingContract: bookadotProperty.address,

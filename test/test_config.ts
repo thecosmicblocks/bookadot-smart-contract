@@ -9,7 +9,7 @@ use(solidity)
 
 let bookadotConfig: BookadotConfig
 let treasuryAddress: string
-const zeroAddress = '0x0000000000000000000000000000000000000000'
+const zeroAddress = ethers.constants.AddressZero;
 const tokenAddress = '0x9CAC127A2F2ea000D0AcBA03A2A52Be38F8ea3ec'
 
 beforeEach(async function () {

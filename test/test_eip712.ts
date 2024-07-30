@@ -55,7 +55,7 @@ describe('BookadotEIP712', function () {
   describe('Should verify eip712 signature successfully', function () {
     it('Valid data and signature with cancellation policy', async function () {
       const domain = {
-        name: 'Bookadot Booking',
+        name: 'Bookadot',
         version: '1',
         chainId: chainId,
         verifyingContract: bookadotEIP712Test.address,
@@ -84,7 +84,7 @@ describe('BookadotEIP712', function () {
 
     it('Valid data and signature without cancellation policy', async function () {
       const domain = {
-        name: 'Bookadot Booking',
+        name: 'Bookadot',
         version: '1',
         chainId: chainId,
         verifyingContract: bookadotEIP712Test.address,
@@ -109,7 +109,7 @@ describe('BookadotEIP712', function () {
   describe('Should NOT verify eip712 signature successfully', function () {
     it('Wrong chainId', async function () {
       const domain = {
-        name: 'Bookadot Booking',
+        name: 'Bookadot',
         version: '1',
         chainId: 2,
         verifyingContract: bookadotEIP712Test.address,
@@ -136,7 +136,7 @@ describe('BookadotEIP712', function () {
 
     it('Wrong address of verifying contract', async function () {
       const domain = {
-        name: 'Bookadot Booking',
+        name: 'Bookadot',
         version: '1',
         chainId: chainId,
         verifyingContract: '0x9CAC127A2F2ea000D0AcBA03A2A52Be38F8ea3ec',
@@ -166,7 +166,7 @@ describe('BookadotEIP712', function () {
       let newSigner = signers[2]
 
       const domain = {
-        name: 'Bookadot Booking',
+        name: 'Bookadot',
         version: '1',
         chainId: chainId,
         verifyingContract: bookadotEIP712Test.address,
@@ -193,7 +193,7 @@ describe('BookadotEIP712', function () {
 
     it('Modify data passing into contract', async function () {
       const domain = {
-        name: 'Bookadot Booking',
+        name: 'Bookadot',
         version: '1',
         chainId: chainId,
         verifyingContract: '0x9CAC127A2F2ea000D0AcBA03A2A52Be38F8ea3ec',
