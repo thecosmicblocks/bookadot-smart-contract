@@ -3,10 +3,11 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { IBookadotConfig } from "./interfaces/IBookadotConfig.sol";
 import { BookadotProperty } from "./BookadotProperty.sol";
 import { BookadotEIP712 } from "./BookadotEIP712.sol";
-import {IBookadotTicketFactory} from "./interfaces/IBookadotTicketFactory.sol";
+import { IBookadotTicketFactory } from "./interfaces/IBookadotTicketFactory.sol";
 import "./BookadotStructs.sol";
 
 contract BookadotFactory is Ownable {
@@ -33,6 +34,7 @@ contract BookadotFactory is Ownable {
         uint256 payoutTimestamp,
         uint8 payoutType // 1: full payout, 2: partial payout
     );
+    event TicketFactoryChanged(address oldAddress, address newAddress);
 
     constructor(address _config, address _ticketFactory) {
         configContract = _config;
@@ -46,48 +48,46 @@ contract BookadotFactory is Ownable {
 
     modifier onlyOwnerOrbookadotOperator() {
         IBookadotConfig config = IBookadotConfig(configContract);
+        address sender = _msgSender();
         require(
-            (owner() == _msgSender()) || (config.bookadotOperator(_msgSender()) == true),
+            (owner() == sender) || (config.bookadotSigner() == sender),
             "Factory: caller is not the owner or operator"
         );
         _;
+    }
+
+    function setTicketFactory(address _newTicketFactory) external onlyOwner {
+        address _ticketFactory = address(ticketFactory);
+        require(_ticketFactory != _newTicketFactory, "Factory: Value Unchanged");
+        emit TicketFactoryChanged(_ticketFactory, _newTicketFactory);
+        ticketFactory = IBookadotTicketFactory(_newTicketFactory);
     }
 
     function deployProperty(
         uint256[] calldata _ids,
         address _host,
         bytes memory _ticketData
-    )
-        external
-        onlyOwnerOrbookadotOperator 
-    {
+    ) external onlyOwnerOrbookadotOperator {
         require(_ids.length > 0, "Factory: Invalid property ids");
         require(_host != address(0), "Factory: Host address is invalid");
         address[] memory properties = new address[](_ids.length);
         for (uint256 i = 0; i < _ids.length; i++) {
-            address ticketAddr = ticketFactory.deployTicket(_ids[i], _ticketData);
+            address _propertyAddr = createProperty(_ids[i], _host);
+            address _ticketAddr = createTicket(_ids[i], _propertyAddr, _ticketData);
 
-            BookadotProperty property = new BookadotProperty(
-                _ids[i],
-                configContract,
-                address(this),
-                _host,
-                ticketAddr
-            );
-            propertyMapping[address(property)] = true;
-            properties[i] = address(property);
+            BookadotProperty(_propertyAddr).setTicketAddress(_ticketAddr);
+            propertyMapping[_propertyAddr] = true;
+            properties[i] = _propertyAddr;
         }
         emit PropertyCreated(_ids, properties, _host);
     }
 
     function verifyBookingData(
         BookingParameters calldata _params,
-        address _authorizedSigner,
         bytes calldata _signature
     ) external view onlyMatchingProperty returns (bool) {
         IBookadotConfig config = IBookadotConfig(configContract);
-        require(config.bookadotOperator(_authorizedSigner) == true, "Factory: Invalid signer");
-        return BookadotEIP712.verify(_params, msg.sender, _authorizedSigner, _signature);
+        return BookadotEIP712.verify(_params, msg.sender, config.bookadotSigner(), _signature);
     }
 
     function book(string calldata _bookingId) external onlyMatchingProperty {
@@ -120,5 +120,29 @@ contract BookadotFactory is Ownable {
         uint8 _payoutType
     ) external onlyMatchingProperty {
         emit Payout(msg.sender, _bookingId, _hostAmount, _treasuryAmount, _payoutTimestamp, _payoutType);
+    }
+
+    function createProperty(uint256 _propertyId, address _host) internal returns (address propertyAddr) {
+        bytes memory propertyBytecode = abi.encodePacked(
+            type(BookadotProperty).creationCode,
+            abi.encode(_propertyId, configContract, address(this), _host)
+        );
+        propertyAddr = Create2.deploy(0, keccak256(abi.encodePacked(_propertyId)), propertyBytecode);
+    }
+
+    function createTicket(
+        uint256 _propertyId,
+        address _propertyAddr,
+        bytes memory _ticketData
+    ) internal returns (address ticketAddr) {
+        (
+            string memory _nftName,
+            string memory _nftSymbol,
+            string memory _baseUri,
+            address _owner,
+            address _transferable
+        ) = abi.decode(_ticketData, (string, string, string, address, address));
+        _ticketData = abi.encode(_nftName, _nftSymbol, _baseUri, _owner, _transferable, _propertyAddr);
+        ticketAddr = ticketFactory.deployTicket(_propertyId, _ticketData);
     }
 }

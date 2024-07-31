@@ -28,18 +28,9 @@ interface NetworkConfig {
 }
 
 const networkConfigs: NetworkConfig[] = [
-    { network: 'mainnet', chainId: 1 },
-    { network: 'ropsten', chainId: 3 },
-    { network: 'rinkeby', chainId: 4 },
-    { network: 'kovan', chainId: 42 },
-    { network: 'bscmainnet', chainId: 56 },
-    { network: 'bsctestnet', chainId: 97 },
-    { network: 'amoy', chainId: 80002 },
+    { network: 'eth-mainnet', chainId: 1 },
+    { network: 'moonbase', chainId: 1287 },
 ]
-
-function getAccountMnemonic() {
-    return process.env.MNEMONIC || ''
-}
 
 function getAccountPrivateKey() {
     return process.env.PRIVATE_KEY || ''
@@ -47,14 +38,12 @@ function getAccountPrivateKey() {
 
 function getDefaultProviderURL(network: string) {
     switch (network) {
-        case 'bscmainnet':
-            return 'https://bsc-dataseed.binance.org/'
-        case 'bsctestnet':
-            return 'https://data-seed-prebsc-1-s1.binance.org:8545/'
-        case 'amoy':
-            return `https://polygon-amoy.infura.io/v3/${process.env.INFURA_KEY}`
+        case 'moonbase':
+            return 'https://rpc.testnet.moonbeam.network'
+        default:
+            return `https://${network}.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`
     }
-    return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
+
 }
 
 function setupDefaultNetworkProviders(buidlerConfig) {

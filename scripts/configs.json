@@ -1,30 +1,29 @@
 {
     "bookadot_config": {
-        "address": "0xf70078Cc41bC247c33bb7F8933C441D02F8F39A0",
+        "address": "0xfD45b998eE082fb3d026F414A58D1e1CCfcb071A",
         "config": [
-            [
-                "0x4F86Eb9C21b0F44e3595C969c24f7E458AB3D890"
-            ],
             500,
             604800,
-            "0x4F86Eb9C21b0F44e3595C969c24f7E458AB3D890",
+            "0xA5125577129778127b1336386D80Da48f8475E14",
+            "0xA5125577129778127b1336386D80Da48f8475E14",
             [
                 "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
             ]
         ]
     },
-    "bookadot_factory": {
-        "address": "0xC0497128F03a04531E2005a52aE7BCc2B940135F",
-        "config": [
-            "0xf70078Cc41bC247c33bb7F8933C441D02F8F39A0"
-        ]
+    "bookadot_ticket_factory": {
+        "address": "0xaFcF848c7b5205936227293Ed479c3099Cb31Dd0",
+        "config": []
     },
-    "bookadot_lens": {
-        "address": "0xa51AAF36BF609c5190539661f111dBE71E6Bb64f",
+    "bookadot_eip712": {
+        "address": "0xDEAa9d36e8d88916445C83Dc9B5eA37B01E621Eb",
+        "config": []
+    },
+    "bookadot_factory": {
+        "address": "0x75aF7f95f82de803afc71421E3823913e0114EC2",
         "config": [
-            "0xc1f8b194796f2220ba5dfb27fc051d30bf999585"
-        ],
-        "attestor": "0xc1f8b194796f2220ba5dfb27fc051d30bf999585",
-        "workflowId": "1"
+            "0xfD45b998eE082fb3d026F414A58D1e1CCfcb071A",
+            "0xaFcF848c7b5205936227293Ed479c3099Cb31Dd0"
+        ]
     }
 }

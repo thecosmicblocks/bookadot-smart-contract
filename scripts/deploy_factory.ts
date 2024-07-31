@@ -24,6 +24,10 @@ async function main() {
     // The transaction that was sent to the network to deploy the Contract
     console.log(bookadotFactory.deployTransaction.hash)
 
+    const BookadotTicketFactory = await ethers.getContractFactory("BookadotTicketFactory");
+    const bookadotTicketFactory = BookadotTicketFactory.attach(Configs.bookadot_ticket_factory.address);
+    let setFactoryTx = await bookadotTicketFactory.setFactory(bookadotFactory.address);
+    await setFactoryTx.wait(1);
 
     // await hre.run('verify:verify', {
     //   address: bookadotFactory.address,

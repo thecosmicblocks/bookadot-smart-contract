@@ -8,27 +8,28 @@ contract BookadotConfig is Ownable {
     uint256 public fee; // fee percentage 5% -> 500, 0.1% -> 10
     uint256 public payoutDelayTime; // payout delay time in seconds
     address public bookadotTreasury;
-    mapping(address => bool) public bookadotOperator;
+    address public bookadotSigner;
     mapping(address => bool) public supportedTokens;
 
     event UpdatedFee(uint256 oldFee, uint256 newFee);
     event UpdatedPayoutDelayTime(uint256 oldPayoutDelayTime, uint256 newPayoutDelayTime);
     event UpdatedTreasury(address oldTreasury, address newTreasury);
-    event UpdatedOperator(address operator, bool permission);
+    event UpdatedSigner(address signer);
     event AddedSupportedToken(address token);
     event RemovedSupportedToken(address token);
 
     constructor(
         uint256 _fee,
+        uint256 _payoutDelayTime,
         address _treasury,
-        address[] memory _defaultOperators,
+        address _defaultSigner,
         address[] memory _tokens
     ) {
         fee = _fee;
         bookadotTreasury = _treasury;
-        for (uint256 i = 0; i < _defaultOperators.length; i++) {
-            bookadotOperator[_defaultOperators[i]] = true;
-        }
+        payoutDelayTime = _payoutDelayTime;
+        bookadotSigner = _defaultSigner;
+
         for (uint256 i = 0; i < _tokens.length; i++) {
             supportedTokens[_tokens[i]] = true;
         }
@@ -36,9 +37,8 @@ contract BookadotConfig is Ownable {
 
     function updateFee(uint256 _fee) external onlyOwner {
         require(_fee <= 2000, "Config: Fee must be between 0 and 2000");
-        uint256 oldFee = fee;
+        emit UpdatedFee(fee, _fee);
         fee = _fee;
-        emit UpdatedFee(oldFee, _fee);
     }
 
     function updatePayoutDelayTime(uint256 _payoutDelayTime) external onlyOwner {
@@ -66,9 +66,11 @@ contract BookadotConfig is Ownable {
         emit UpdatedTreasury(oldTreasury, _treasury);
     }
 
-    function updateBookadotOperator(address _operator, bool _permission) external onlyOwner {
-        require(_operator != address(0), "Config: operator is zero address");
-        bookadotOperator[_operator] = _permission;
-        emit UpdatedOperator(_operator, _permission);
+    function updateBookadotSigner(address _signer) external onlyOwner {
+        require(_signer != address(0), "Config: signer is zero address");
+        require(_signer != bookadotSigner, "Config: value unchanged");
+
+        bookadotSigner = _signer;
+        emit UpdatedSigner(_signer);
     }
 }

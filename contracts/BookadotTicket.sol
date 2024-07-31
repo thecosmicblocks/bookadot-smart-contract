@@ -9,7 +9,7 @@ contract BookadotTicket is ERC721Enumerable {
     string private baseUri;
     address private owner;
 
-    mapping(address => bool) private minters;
+    mapping(address => bool) private operator;
     mapping(address => bool) private transferables;
 
     event ChangedBaseURI(string oldBaseUri, string newBaseUri);
@@ -18,12 +18,12 @@ contract BookadotTicket is ERC721Enumerable {
         string memory _nftName,
         string memory _nftSymbol,
         string memory _baseUri,
-        address _minter,
         address _owner,
-        address _transferable
+        address _transferable,
+        address _operator
     ) ERC721(_nftName, _nftSymbol) {
         baseUri = _baseUri;
-        minters[_minter] = true;
+        operator[_operator] = true;
         owner = _owner;
         transferables[_transferable] = true;
     }
@@ -35,10 +35,10 @@ contract BookadotTicket is ERC721Enumerable {
         emit ChangedBaseURI(oldBaseUri, _baseUri);
     }
 
-    function updateMinter(address _minter, bool _persmission) external onlyOwner {
-        require(_minter != address(0), "Minter must not be zero address");
-        require(minters[_minter] != _persmission, "Minter already added");
-        minters[_minter] = _persmission;
+    function updateOperator(address _operator, bool _persmission) external onlyOwner {
+        require(_operator != address(0), "Operator must not be zero address");
+        require(operator[_operator] != _persmission, "Operator already added");
+        operator[_operator] = _persmission;
     }
 
     function setTransferable(address _transferable, bool _persmission) external onlyOwner {
@@ -46,31 +46,16 @@ contract BookadotTicket is ERC721Enumerable {
         transferables[_transferable] = _persmission;
     }
 
-    function mint(address _receiver) public onlyMinter {
+    function mint(address _receiver) public onlyOperator returns (uint256 id) {
         unchecked {
             nftId++;
         }
+        id = nftId;
         _safeMint(_receiver, nftId);
     }
 
-    function mintBatch(address _receiver, uint256 _amount) external onlyMinter {
-        require(_receiver != address(0), "Receiver can not be zero address");
-        uint256[] memory ids = new uint256[](_amount);
-        for (uint256 i = 0; i < ids.length; i++) {
-            mint(_receiver);
-        }
-    }
-
-    function burn(uint256 _id) external onlyMinter {
-        require(_isApprovedOrOwner(_msgSender(), _id), "ERC721: caller is not approved or owner");
+    function burn(uint256 _id) external onlyOperator {
         _burn(_id);
-    }
-
-    function burnBatch(uint256[] calldata _ids) external onlyMinter {
-        for (uint256 i = 0; i < _ids.length; i++) {
-            require(_isApprovedOrOwner(_msgSender(), _ids[i]), "ERC721: caller is not approved or owner");
-            _burn(_ids[i]);
-        }
     }
 
     function getTokenOf(address _address) external view returns (uint256[] memory _tokens) {
@@ -91,11 +76,7 @@ contract BookadotTicket is ERC721Enumerable {
         return string(abi.encodePacked(baseUri, Strings.toString(_tokenId)));
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public override(ERC721) {
+    function transferFrom(address from, address to, uint256 tokenId) public override(ERC721) {
         require(transferables[from] || transferables[to], "disabled");
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: caller is not approved or owner");
         _transfer(from, to, tokenId);
@@ -104,19 +85,14 @@ contract BookadotTicket is ERC721Enumerable {
     /**
      * @dev See {IERC721-safeTransferFrom}.
      */
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory _data
-    ) public override(ERC721) {
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public override(ERC721) {
         require(transferables[from] || transferables[to], "disabled");
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: caller is not approved or owner");
         _safeTransfer(from, to, tokenId, _data);
     }
 
-    modifier onlyMinter() {
-        require(minters[_msgSender()], "Caller is not minter");
+    modifier onlyOperator() {
+        require(operator[_msgSender()], "Caller is not operator");
         _;
     }
 

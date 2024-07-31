@@ -9,7 +9,7 @@ interface IBookadotConfig {
 
     function bookadotTreasury() external view returns (address);
 
-    function bookadotOperator(address operator) external view returns (bool);
+    function bookadotSigner() external view returns (address);
 
     function supportedTokens(address) external view returns (bool);
 }

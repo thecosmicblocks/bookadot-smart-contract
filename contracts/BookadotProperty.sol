@@ -3,22 +3,21 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { IBookadotConfig } from "./interfaces/IBookadotConfig.sol";
 import { IBookadotFactory } from "./interfaces/IBookadotFactory.sol";
-import {IBookadotTicket} from "./interfaces/IBookadotTicket.sol";
+import { IBookadotTicket } from "./interfaces/IBookadotTicket.sol";
 import { Booking, BookingParameters, BookingStatus } from "./BookadotStructs.sol";
 
-contract BookadotProperty is Ownable, ReentrancyGuard {
+contract BookadotProperty is ReentrancyGuard {
     uint256 public id; // property id
-    Booking[] public bookings; // bookings array
+    address private host; // host address
     mapping(string => uint256) public bookingsMap; // booking id to index + 1 in bookings array so the first booking has index 1
+    mapping(address => bool) public hostDelegates; // addresses authorized by the host to act in the host's behalf
     IBookadotConfig private configContract; // config contract
     IBookadotFactory private factoryContract; // factory contract
-    address host; // host address
-    mapping(address => bool) public hostDelegates; // addresses authorized by the host to act in the host's behalf
-    IBookadotTicket ticket;
+    IBookadotTicket private ticket;
+    Booking[] public bookings; // bookings array
 
     /**
     @param _id Property Id
@@ -26,18 +25,11 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
     @param _factory Contract address of BookadotFactory
     @param _host Wallet address of the owner of this property
     */
-    constructor(
-        uint256 _id,
-        address _config,
-        address _factory,
-        address _host,
-        address _ticket
-    ) {
+    constructor(uint256 _id, address _config, address _factory, address _host) {
         id = _id;
         configContract = IBookadotConfig(_config);
         factoryContract = IBookadotFactory(_factory);
         host = _host;
-        ticket = IBookadotTicket(_ticket);
     }
 
     /**
@@ -60,10 +52,10 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
         hostDelegates[delegate] = false;
     }
 
-    function _validateBookingParameters(BookingParameters memory _params, bytes memory _signature)
-        private
-        returns (bool)
-    {
+    function _validateBookingParameters(
+        BookingParameters memory _params,
+        bytes memory _signature
+    ) private returns (bool) {
         require(bookingsMap[_params.bookingId] == 0, "Property: Booking already exists");
         require(block.timestamp < _params.bookingExpirationTimestamp, "Property: Booking data is expired");
         require(configContract.supportedTokens(_params.token), "Property: Token is not whitelisted");
@@ -98,6 +90,11 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
         return true;
     }
 
+    function setTicketAddress(address _ticket) external {
+        require(address(ticket) == address(0), "Property: Ticket address already set");
+        ticket = IBookadotTicket(_ticket);
+    }
+
     /**
     @param _params Booking data provided by oracle backend
     @param _signature Signature of the transaction
@@ -105,8 +102,7 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
     function book(BookingParameters calldata _params, bytes calldata _signature) external nonReentrant {
         // Check if parameters are valid
         _validateBookingParameters(_params, _signature);
-
-        address sender = _msgSender();
+        address sender = msg.sender;
         bookings.push();
         uint256 bookingIndex = bookings.length - 1;
         for (uint256 i = 0; i < _params.cancellationPolicies.length; i++) {
@@ -123,6 +119,9 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
         bookingsMap[_params.bookingId] = bookingIndex + 1;
 
         IERC20(_params.token).transferFrom(sender, address(this), _params.bookingAmount);
+
+        bookings[bookingIndex].ticketId = ticket.mint(sender);
+        bookings[bookingIndex].status = BookingStatus.InProgress;
 
         // emit Book event
         factoryContract.book(_params.bookingId);
@@ -164,7 +163,34 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
         IERC20(booking.token).transfer(host, hostAmount);
         IERC20(booking.token).transfer(configContract.bookadotTreasury(), treasuryAmount);
 
+        ticket.burn(booking.ticketId);
+
         factoryContract.cancelByGuest(_bookingId, guestAmount, hostAmount, treasuryAmount, block.timestamp);
+    }
+
+    /**
+    When a booking is cancelled by the host, the whole remaining balance is sent to the guest.
+    Any amount that has been paid out to the host or to the treasury through calls to `payout` will have to be refunded manually to the guest.
+    */
+    function cancelByHost(string calldata _bookingId) external nonReentrant onlyHostOrDelegate {
+        Booking memory booking = bookings[getBookingIndex(_bookingId)];
+        require(booking.guest != address(0), "Property: Booking does not exist");
+        require(
+            (booking.status == BookingStatus.InProgress || booking.status == BookingStatus.PartialPayOut) &&
+                booking.balance > 0,
+            "Property: Booking is already cancelled or fully paid out"
+        );
+
+        // Refund to the guest
+        uint256 guestAmount = booking.balance;
+
+        _updateBookingStatus(_bookingId, BookingStatus.CancelledByHost);
+
+        IERC20(booking.token).transfer(booking.guest, guestAmount);
+
+        ticket.burn(booking.ticketId);
+
+        factoryContract.cancelByHost(_bookingId, guestAmount, block.timestamp);
     }
 
     /**
@@ -217,29 +243,6 @@ contract BookadotProperty is Ownable, ReentrancyGuard {
         IERC20(booking.token).transfer(configContract.bookadotTreasury(), treasuryAmount);
 
         factoryContract.payout(_bookingId, hostAmount, treasuryAmount, block.timestamp, currentBalance == 0 ? 1 : 2);
-    }
-
-    /**
-    When a booking is cancelled by the host, the whole remaining balance is sent to the guest.
-    Any amount that has been paid out to the host or to the treasury through calls to `payout` will have to be refunded manually to the guest.
-    */
-    function cancelByHost(string calldata _bookingId) external nonReentrant onlyHostOrDelegate {
-        Booking memory booking = bookings[getBookingIndex(_bookingId)];
-        require(booking.guest != address(0), "Property: Booking does not exist");
-        require(
-            (booking.status == BookingStatus.InProgress || booking.status == BookingStatus.PartialPayOut) &&
-                booking.balance > 0,
-            "Property: Booking is already cancelled or fully paid out"
-        );
-
-        // Refund to the guest
-        uint256 guestAmount = booking.balance;
-
-        _updateBookingStatus(_bookingId, BookingStatus.CancelledByHost);
-
-        IERC20(booking.token).transfer(booking.guest, guestAmount);
-
-        factoryContract.cancelByHost(_bookingId, guestAmount, block.timestamp);
     }
 
     function totalBooking() external view returns (uint256) {

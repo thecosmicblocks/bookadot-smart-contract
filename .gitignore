@@ -16,7 +16,6 @@ bin/
 # Others
 .env
 .DS_Store
-.vscode
 
 # Reports
 /reports

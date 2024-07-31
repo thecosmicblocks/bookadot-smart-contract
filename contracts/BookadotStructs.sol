@@ -31,6 +31,7 @@ struct Booking {
     uint256 checkInTimestamp;
     uint256 checkOutTimestamp;
     uint256 balance;
+    uint256 ticketId;
     address guest;
     address token;
     BookingStatus status;
