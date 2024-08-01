@@ -4,11 +4,8 @@ import { CONTRACT_KEYS, getAddress } from "./helpers"
 
 async function main() {
     await hre.run('verify:verify', {
-        address: getAddress(hre.network.name, CONTRACT_KEYS.BOOKADOT_FACTORY),
-        constructorArguments: [
-            getAddress(hre.network.name, CONTRACT_KEYS.BOOKADOT_CONFIG),
-            getAddress(hre.network.name, CONTRACT_KEYS.BOOKADOT_TICKET_FACTORY),
-        ],
+        address: getAddress(hre.network.name, CONTRACT_KEYS.BOOKADOT_TICKET_FACTORY),
+        constructorArguments: [],
     })
 }
 
