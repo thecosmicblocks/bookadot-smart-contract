@@ -7,9 +7,9 @@ import { abi as BookadotTicketAbi } from "../build/contracts/contracts/BookadotT
 const OUT_DIR = "bookadot-sdk";
 const CONTRACTS = [
     {
-        name: "BookadotPropert",
+        name: "BookadotProperty",
         abi: BookadotPropertyAbi,
-        fileName: "BookadotPropert",
+        fileName: "BookadotProperty",
     },
     {
         name: "BookadotFactory",
