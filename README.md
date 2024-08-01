@@ -2,11 +2,13 @@
 
 ```mermaid
 graph LR
-A(Factory) -->|get| B[Config]
-A(Factory) -->|use| C[EIP712]
-A -->|deploy| D[Property]
-D -->|deploy| E[Ticket]
-E -->|add role| D
+Factory(Factory) -->|get| Config[Config]
+Factory(Factory) -->|use| EIP712[EIP712]
+Factory --> |deploy| Property[Property]
+Factory --> TicketFactory[Ticket Factory]
+TicketFactory --> |deploy| Ticket[Ticket]
+Ticket --> |add role| Property
+Ticket --> |add role| Marketplace[Marketplace]
 ```
 
 

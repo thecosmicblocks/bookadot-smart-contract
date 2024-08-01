@@ -149,6 +149,7 @@ describe('BookadotProperty', function () {
 
             await expect(bookadotProperty.connect(guestSigner).book(param, signature)).to.be.revertedWith('ERC20: insufficient allowance')
         })
+
         it('should revert because booking data is expired', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -175,6 +176,7 @@ describe('BookadotProperty', function () {
 
             await resetBlockTimestamp()
         })
+
         it('should revert because token is not whitelisted', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -224,6 +226,7 @@ describe('BookadotProperty', function () {
             expect(bookingData.balance).to.equal(0)
             expect(bookingData.status).to.equal(3)
         })
+
         it('should cancel successfully with partial refund after first cancellation milestone', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -270,6 +273,7 @@ describe('BookadotProperty', function () {
 
             await resetBlockTimestamp()
         })
+
         it('should cancel successfully without refund after last cancellation milestone', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -316,6 +320,7 @@ describe('BookadotProperty', function () {
 
             await resetBlockTimestamp()
         })
+
         it('should revert because only guest be able to call cancel', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -330,6 +335,7 @@ describe('BookadotProperty', function () {
             let newGuestSigner = signers[4]
             await expect(bookadotProperty.connect(newGuestSigner).cancel(bookingId)).to.be.revertedWith('Property: Only the guest can cancel the booking')
         })
+
         it('should revert because the booking is already cancelled', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -350,6 +356,7 @@ describe('BookadotProperty', function () {
             /// call cancel again
             await expect(bookadotProperty.connect(guestSigner).cancel(bookingId)).to.be.revertedWith('Property: Booking is already cancelled or paid out')
         })
+
         it('should revert because the booking is not found', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -367,6 +374,7 @@ describe('BookadotProperty', function () {
             await expect(bookadotProperty.connect(guestSigner).cancel('mY8tjKm02T')).to.be.revertedWith('Property: Booking does not exist')
         })
     })
+
     describe('Verify payout function', function () {
         it('should payout successfully with valid call', async function () {
             const bookingId = '2hB2o789n'
@@ -442,6 +450,7 @@ describe('BookadotProperty', function () {
 
             await resetBlockTimestamp()
         })
+
         it('should revert because of calling before payout milestone', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -467,6 +476,7 @@ describe('BookadotProperty', function () {
             await expect(bookadotProperty.payout('mY8tjKm02T')).to.be.revertedWith('Property: Booking does not exist')
         })
     })
+
     describe('Verify cancelByHost function', function () {
         it('should cancel by host successfully with valid call', async function () {
             const bookingId = '2hB2o789n'
@@ -492,6 +502,7 @@ describe('BookadotProperty', function () {
             expect(bookingData.balance).to.equal(0)
             expect(bookingData.status).to.equal(4)
         })
+
         it("should cancel by host's delegator successfully with valid call", async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -521,6 +532,7 @@ describe('BookadotProperty', function () {
             expect(bookingData.balance).to.equal(0)
             expect(bookingData.status).to.equal(4)
         })
+
         it('should revert because only host be able to call this function', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -533,6 +545,7 @@ describe('BookadotProperty', function () {
 
             await expect(bookadotProperty.connect(guestSigner).cancelByHost(bookingId)).to.be.revertedWith("Property: Only the host or a host's delegate is authorized to call this action")
         })
+
         it("should revert because delegator is already revoked", async function () {
             const bookingAmount = BigNumber.from('100000000000000000000')
             const signers = await ethers.getSigners()
@@ -568,6 +581,7 @@ describe('BookadotProperty', function () {
             await expect(bookadotProperty.connect(delegatorSigner).cancelByHost(bookingId1)).to.be.revertedWith("Property: Only the host or a host's delegate is authorized to call this action")
         })
     })
+
     describe('Verify utility functions', function () {
         it('should get correct total booking', async function () {
             /// there should be no booking in the beginning
@@ -586,6 +600,7 @@ describe('BookadotProperty', function () {
             /// there should be one booking now
             expect(await bookadotProperty.totalBooking()).to.equal(1)
         })
+
         it('should get correct index of booking', async function () {
             const bookingAmount = BigNumber.from('100000000000000000000')
             const signers = await ethers.getSigners()
@@ -606,6 +621,7 @@ describe('BookadotProperty', function () {
 
             expect(await bookadotProperty.getBookingIndex(bookingId1)).to.equal(1)
         })
+
         it('should get correct array of booking history', async function () {
             const bookingAmount = BigNumber.from('100000000000000000000')
             const signers = await ethers.getSigners()

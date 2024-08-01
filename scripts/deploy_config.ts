@@ -1,13 +1,27 @@
+import { CONTRACT_KEYS, appendAddress } from './helpers';
 import '@nomiclabs/hardhat-ethers'
-import { ethers } from 'hardhat'
-import Configs from './configs.json'
+import { ethers, network } from 'hardhat'
 
 async function main() {
-    const BookadotConfig = await ethers.getContractFactory('BookadotConfig')
+    const signerWallet = new ethers.Wallet(process.env.SIGNER_PRIVATE_KEY!);
+    /**
+     * _fee,
+     * _payoutDelayTime,
+     * _treasury,
+     * _defaultSigner,
+     * _tokens
+     */
+    const constructorArgs = [
+        500,
+        604800,
+        process.env.TREASURY_ADDRESS,
+        signerWallet.address,
+        ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"]
+    ]
 
+    const BookadotConfig = await ethers.getContractFactory('BookadotConfig')
     // If we had constructor arguments, they would be passed into deploy()
-    const args = Configs['bookadot_config'].config;
-    const bookadotConfig = await BookadotConfig.deploy(...args)
+    const bookadotConfig = await BookadotConfig.deploy(...constructorArgs)
     await bookadotConfig.deployed()
 
     // The address the Contract WILL have once mined
@@ -16,9 +30,15 @@ async function main() {
     // The transaction that was sent to the network to deploy the Contract
     console.log(bookadotConfig.deployTransaction.hash)
 
+    appendAddress(
+        network.name,
+        bookadotConfig.address,
+        CONTRACT_KEYS.BOOKADOT_CONFIG
+    );
+
     // await hre.run('verify:verify', {
     //   address: bookadotConfig.address,
-    //   constructorArguments: Configs['bookadot_config'].config,
+    //   constructorArguments: constructorArgs,
     // })
 }
 

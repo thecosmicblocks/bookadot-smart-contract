@@ -17,6 +17,7 @@ import '@tenderly/hardhat-tenderly'
 import '@openzeppelin/hardhat-upgrades'
 import '@typechain/hardhat'
 import 'solidity-coverage'
+import "hardhat-watcher";
 
 // Networks
 
@@ -29,16 +30,16 @@ interface NetworkConfig {
 
 const networkConfigs: NetworkConfig[] = [
     { network: 'eth-mainnet', chainId: 1 },
-    { network: 'moonbase', chainId: 1287 },
+    { network: 'moonbaseAlpha', chainId: 1287 },
 ]
 
 function getAccountPrivateKey() {
-    return process.env.PRIVATE_KEY || ''
+    return process.env.DEPLOYER_PRIVATE_KEY || ''
 }
 
 function getDefaultProviderURL(network: string) {
     switch (network) {
-        case 'moonbase':
+        case 'moonbaseAlpha':
             return 'https://rpc.testnet.moonbeam.network'
         default:
             return `https://${network}.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`
@@ -85,7 +86,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 2000,
+                        runs: 1,
                     },
                     outputSelection: {
                         '*': {
@@ -114,7 +115,10 @@ const config: HardhatUserConfig = {
         },
     },
     etherscan: {
-        apiKey: process.env.ETHERSCAN_API_KEY,
+        apiKey: {
+            moonbaseAlpha: process.env.MOONBEAM_SCAN_API_KEY,
+            moonbeam: process.env.MOONBEAM_SCAN_API_KEY,
+        }
     },
     gasReporter: {
         enabled: process.env.REPORT_GAS ? true : false,
@@ -137,7 +141,7 @@ const config: HardhatUserConfig = {
     // },
     contractSizer: {
         alphaSort: true,
-        runOnCompile: false,
+        runOnCompile: true,
         disambiguatePaths: true,
     },
 }
