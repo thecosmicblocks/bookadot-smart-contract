@@ -18,6 +18,7 @@
     "include": [
         "test",
         "scripts",
+        "client",
     ],
     "files": [
         "hardhat.config.ts",

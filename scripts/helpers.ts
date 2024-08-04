@@ -46,17 +46,25 @@ export const sleep = async (ms: number) => {
     });
 };
 
-export const makeId = (length: number): string => {
-    let result = "";
+export function makeId(length: number, type: 'number' | 'string' = 'number'): number | string {
+    let result: string = "";
     const characters =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    const charactersLength = characters.length;
+    const numbers = "0123456789";
+    const isNumber = type === 'number';
+    const charactersLength = isNumber ? numbers.length : characters.length;
+    const characterType = isNumber ? numbers : characters;
+    const parser = {
+        'number': Number,
+        'string': String,
+    };
+
     let counter = 0;
     while (counter < length) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        result += characterType.charAt(Math.floor(Math.random() * charactersLength));
         counter += 1;
     }
-    return result;
+    return parser[type](result);
 };
 
 export const timestampToEpochTime = (timestamp: number | string | Date) => {
