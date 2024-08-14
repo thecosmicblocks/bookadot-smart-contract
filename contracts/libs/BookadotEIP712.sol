@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.4 <0.9.0;
 
-import "./BookadotStructs.sol";
+import "../BookadotStructs.sol";
 
 struct EIP712Domain {
     string name;
@@ -106,15 +106,7 @@ library BookadotEIP712 {
         return signer;
     }
 
-    function splitSignature(bytes memory sig)
-        internal
-        pure
-        returns (
-            bytes32 r,
-            bytes32 s,
-            uint8 v
-        )
-    {
+    function splitSignature(bytes memory sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
         require(sig.length == 65, "EIP712: invalid signature length");
         assembly {
             /*

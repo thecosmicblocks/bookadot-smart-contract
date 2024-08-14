@@ -6,7 +6,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { IBookadotConfig } from "./interfaces/IBookadotConfig.sol";
 import { BookadotProperty } from "./BookadotProperty.sol";
-import { BookadotEIP712 } from "./BookadotEIP712.sol";
+import { BookadotEIP712 } from "./libs/BookadotEIP712.sol";
 import { IBookadotTicketFactory } from "./interfaces/IBookadotTicketFactory.sol";
 import "./BookadotStructs.sol";
 

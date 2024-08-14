@@ -3,7 +3,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 
 import "../BookadotStructs.sol";
-import { BookadotEIP712 } from "../BookadotEIP712.sol";
+import { BookadotEIP712 } from "../libs/BookadotEIP712.sol";
 
 contract BookadotEIP712Test {
     address authorizedAddress;

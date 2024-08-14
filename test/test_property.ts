@@ -1,18 +1,18 @@
 import { BookadotTicketFactory__factory } from './../build/types/factories/BookadotTicketFactory__factory';
-import { BookadotProperty__factory } from './../build/types/factories/BookadotProperty__factory';
 import { BookadotTokenTest } from './../build/types/BookadotTokenTest';
 import { BookadotProperty } from './../build/types/BookadotProperty';
 import { expect, use } from 'chai'
 import { ethers } from 'hardhat'
 import { describe, it } from 'mocha'
 import { solidity } from 'ethereum-waffle'
-import { BigNumber, BytesLike, Contract, ContractReceipt } from 'ethers'
+import { BigNumber, Contract, ContractReceipt, PayableOverrides } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BookadotConfig } from '../build/types/BookadotConfig';
 import { BookadotFactory } from '../build/types/BookadotFactory';
 import { BookadotTicketFactory } from '../build/types/BookadotTicketFactory';
 import { BookingParametersStruct } from '../build/types/BookadotEIP712Test';
 import { BookadotTicket } from '../build/types/BookadotTicket';
+import { NATIVE_TOKEN } from '../helpers/consts';
 
 use(solidity)
 
@@ -83,7 +83,7 @@ beforeEach(async function () {
 
 describe('BookadotProperty', function () {
     describe('Verify book function', function () {
-        it('Should book successfully with valid data', async function () {
+        it('Should book successfully with ERC20', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
             const signers = await ethers.getSigners()
@@ -108,6 +108,40 @@ describe('BookadotProperty', function () {
             /// verify balance
             expect(await bookadotTokenTest.balanceOf(guestSigner.address)).to.equal(0)
             expect(await bookadotTokenTest.balanceOf(bookadotProperty.address)).to.equal(bookingAmount)
+        })
+
+        it('Should book successfully with Native', async function () {
+            const bookingId = '2hz2o789n'
+            const bookingAmount = BigNumber.from('100000000000000000000')
+            const signers = await ethers.getSigners()
+            const backendSigner = signers[0]
+
+            await (
+                await bookadotConfig.addSupportedToken(
+                    NATIVE_TOKEN
+                )
+            ).wait()
+            let { param, signature } = await generateBookingParam(bookingId, bookingAmount, backendSigner, NATIVE_TOKEN)
+            let guestSigner = signers[3]
+
+            await createBooking(guestSigner, bookingAmount, param, signature, {
+                value: bookingAmount
+            })
+            expect(await bookadotTicket.ownerOf(1)).to.be.equal(guestSigner.address)
+
+            let bookingData = await bookadotProperty.getBooking(bookingId)
+
+            /// verify booking data on contract
+            expect(bookingData).to.be.not.undefined
+            expect(bookingData).to.be.not.null
+            expect(bookingData.id).to.equal(bookingId)
+            expect(bookingData.balance).to.equal(bookingAmount)
+            expect(bookingData.token).to.equal(NATIVE_TOKEN)
+            expect(bookingData.guest).to.equal(guestSigner.address)
+            expect(bookingData.ticketId.toNumber()).to.equal(1)
+
+            /// verify balance
+            expect(await bookadotProperty.provider.getBalance(bookadotProperty.address)).to.equal(bookingAmount)
         })
 
         it('should revert because of invalid signature', async function () {
@@ -147,7 +181,7 @@ describe('BookadotProperty', function () {
             let approveTx = await (bookadotTokenTest.connect(guestSigner)).approve(bookadotProperty.address, bookingAmount.div(2))
             await approveTx.wait()
 
-            await expect(bookadotProperty.connect(guestSigner).book(param, signature)).to.be.revertedWith('ERC20: insufficient allowance')
+            await expect(bookadotProperty.connect(guestSigner).book(param, signature)).to.be.reverted
         })
 
         it('should revert because booking data is expired', async function () {
@@ -758,7 +792,8 @@ async function createBooking(
     guestSigner: SignerWithAddress,
     bookingAmount: BigNumber,
     param: BookingParametersStruct,
-    signature: string
+    signature: string,
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
 ): Promise<ContractReceipt> {
     /// faucet to guest account
     let faucetTx = await bookadotTokenTest.faucet(guestSigner.address, bookingAmount)
@@ -769,7 +804,12 @@ async function createBooking(
     await approveTx.wait()
 
     /// use guest account to call booking
-    let bookingTx = await bookadotProperty.connect(guestSigner).book(param, signature)
+    const params = [param, signature] as any[]
+    if (overrides) {
+        params.push(overrides)
+    }
+    // @ts-ignore
+    let bookingTx = await bookadotProperty.connect(guestSigner).book(...params)
     return bookingTx.wait()
 }
 

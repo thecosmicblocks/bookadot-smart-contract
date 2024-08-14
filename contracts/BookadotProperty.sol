@@ -2,12 +2,12 @@
 
 pragma solidity >=0.8.4 <0.9.0;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { IBookadotConfig } from "./interfaces/IBookadotConfig.sol";
 import { IBookadotFactory } from "./interfaces/IBookadotFactory.sol";
 import { IBookadotTicket } from "./interfaces/IBookadotTicket.sol";
 import { Booking, BookingParameters, BookingStatus } from "./BookadotStructs.sol";
+import { TransferHelper } from "./libs/TransferHelper.sol";
 
 contract BookadotProperty is ReentrancyGuard {
     uint256 public id; // property id
@@ -99,7 +99,7 @@ contract BookadotProperty is ReentrancyGuard {
     @param _params Booking data provided by oracle backend
     @param _signature Signature of the transaction
     */
-    function book(BookingParameters calldata _params, bytes calldata _signature) external nonReentrant {
+    function book(BookingParameters calldata _params, bytes calldata _signature) external payable nonReentrant {
         // Check if parameters are valid
         _validateBookingParameters(_params, _signature);
         address sender = msg.sender;
@@ -118,7 +118,7 @@ contract BookadotProperty is ReentrancyGuard {
 
         bookingsMap[_params.bookingId] = bookingIndex + 1;
 
-        IERC20(_params.token).transferFrom(sender, address(this), _params.bookingAmount);
+        _payin(_params.token, sender, _params.bookingAmount);
 
         bookings[bookingIndex].ticketId = ticket.mint(sender);
         bookings[bookingIndex].status = BookingStatus.InProgress;
@@ -159,9 +159,9 @@ contract BookadotProperty is ReentrancyGuard {
         uint256 treasuryAmount = ((booking.balance - guestAmount) * configContract.fee()) / 10000;
         uint256 hostAmount = booking.balance - guestAmount - treasuryAmount;
 
-        IERC20(booking.token).transfer(booking.guest, guestAmount);
-        IERC20(booking.token).transfer(host, hostAmount);
-        IERC20(booking.token).transfer(configContract.bookadotTreasury(), treasuryAmount);
+        _payout(booking.token, booking.guest, guestAmount);
+        _payout(booking.token, host, hostAmount);
+        _payout(booking.token, configContract.bookadotTreasury(), treasuryAmount);
 
         ticket.burn(booking.ticketId);
 
@@ -186,7 +186,7 @@ contract BookadotProperty is ReentrancyGuard {
 
         _updateBookingStatus(_bookingId, BookingStatus.CancelledByHost);
 
-        IERC20(booking.token).transfer(booking.guest, guestAmount);
+        _payout(booking.token, booking.guest, guestAmount);
 
         ticket.burn(booking.ticketId);
 
@@ -239,10 +239,27 @@ contract BookadotProperty is ReentrancyGuard {
         uint256 treasuryAmount = (toBePaid * configContract.fee()) / 10000;
         uint256 hostAmount = toBePaid - treasuryAmount;
 
-        IERC20(booking.token).transfer(host, hostAmount);
-        IERC20(booking.token).transfer(configContract.bookadotTreasury(), treasuryAmount);
+        _payout(booking.token, host, hostAmount);
+        _payout(booking.token, configContract.bookadotTreasury(), treasuryAmount);
 
         factoryContract.payout(_bookingId, hostAmount, treasuryAmount, block.timestamp, currentBalance == 0 ? 1 : 2);
+    }
+
+    function _payin(address _token, address _from, uint256 _amount) internal {
+        if (_token == TransferHelper.NATIVE_TOKEN) {
+            require(msg.value >= _amount, "Property: Insufficient amount");
+        } else {
+            TransferHelper.safeEnoughTokenApproved(_token, _from, address(this), _amount);
+            TransferHelper.safeTransferFrom(_token, _from, address(this), _amount);
+        }
+    }
+
+    function _payout(address _token, address _to, uint256 _amount) internal {
+        if (_token == TransferHelper.NATIVE_TOKEN) {
+            _to.call{ value: _amount }("");
+        } else {
+            TransferHelper.safeTransfer(_token, _to, _amount);
+        }
     }
 
     function totalBooking() external view returns (uint256) {

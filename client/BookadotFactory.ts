@@ -4,7 +4,7 @@ import { BookadotFactory } from '../build/types/BookadotFactory';
 
 async function main() {
     //////////// CONTRACT INSTANCE ////////////
-    const bookadotTicketFactoryAddr = getAddress(network.name, CONTRACT_KEYS.BOOKADOT_TICKET_FACTORY);
+    const bookadotTicketFactoryAddr = getAddress(network.name, CONTRACT_KEYS.BOOKADOT_FACTORY);
     const BookadotFactory = await ethers.getContractFactory('BookadotFactory', {
         libraries: {
             BookadotEIP712: getAddress(network.name, CONTRACT_KEYS.BOOKADOT_EIP712)
@@ -18,17 +18,13 @@ async function main() {
     ////////////////////////
     //////////// PARAM ////////////
     const ids = [makeId(5, 'number')]
-    const signer = (await ethers.getSigners())[0]
-    const ticketData = generateTicketData(signer.address, signer.address)
-
-    console.log(ids,
-        signer.address,
-        ticketData);
+    const deployer = (await ethers.getSigners())[0]
+    const ticketData = generateTicketData(deployer.address, deployer.address)
 
     const tx = await
         bookadotFactory.deployProperty(
             ids,
-            signer.address,
+            deployer.address,
             ticketData
         );
     await tx.wait(1);
