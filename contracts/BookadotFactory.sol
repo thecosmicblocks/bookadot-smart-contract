@@ -16,7 +16,7 @@ contract BookadotFactory is Ownable {
     mapping(address => bool) private propertyMapping;
 
     event PropertyCreated(uint256[] ids, address[] properties, address host);
-    event Book(address property, string bookingId, uint256 bookedTimestamp);
+    event Book(address property, uint256 bookedTimestamp, Booking bookingData);
     event CancelByGuest(
         address property,
         string bookingId,
@@ -90,8 +90,8 @@ contract BookadotFactory is Ownable {
         return BookadotEIP712.verify(_params, msg.sender, config.bookadotSigner(), _signature);
     }
 
-    function book(string calldata _bookingId) external onlyMatchingProperty {
-        emit Book(msg.sender, _bookingId, block.timestamp);
+    function book(Booking calldata _bookingData) external onlyMatchingProperty {
+        emit Book(msg.sender, block.timestamp, _bookingData);
     }
 
     function cancelByGuest(

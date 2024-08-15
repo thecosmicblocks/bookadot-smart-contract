@@ -124,7 +124,7 @@ contract BookadotProperty is ReentrancyGuard {
         bookings[bookingIndex].status = BookingStatus.InProgress;
 
         // emit Book event
-        factoryContract.book(_params.bookingId);
+        factoryContract.book(bookings[bookingIndex]);
     }
 
     function _updateBookingStatus(string calldata _bookingId, BookingStatus _status) internal {
