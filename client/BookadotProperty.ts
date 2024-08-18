@@ -7,7 +7,7 @@ import { BookadotProperty } from '../build/types/BookadotProperty';
 async function main() {
     //////////// CONTRACT INSTANCE ////////////
     const signer = new ethers.Wallet(process.env.SIGNER_PRIVATE_KEY!);
-    const bookadotProperty = await ethers.getContractAt("BookadotProperty", "0xE4d8320D6f947F2B424Ce2a2fa9248d52a3e151B") as BookadotProperty;
+    const bookadotProperty = await ethers.getContractAt("BookadotProperty", "0xC12b78fb077eAcE1d460147647be390439F88b62") as BookadotProperty;
 
     ////////////////////////
     ////////////////////////

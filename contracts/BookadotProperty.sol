@@ -10,14 +10,20 @@ import { Booking, BookingParameters, BookingStatus } from "./BookadotStructs.sol
 import { TransferHelper } from "./libs/TransferHelper.sol";
 
 contract BookadotProperty is ReentrancyGuard {
-    uint256 public id; // property id
-    address private host; // host address
-    mapping(string => uint256) public bookingsMap; // booking id to index + 1 in bookings array so the first booking has index 1
-    mapping(address => bool) public hostDelegates; // addresses authorized by the host to act in the host's behalf
-    IBookadotConfig private configContract; // config contract
-    IBookadotFactory private factoryContract; // factory contract
+    /// property id
+    uint256 public id;
+    /// host address
+    address private host;
+    /// booking id to Booking
+    mapping(string => Booking) public bookings;
+    /// addresses authorized by the host to act in the host's behalf
+    mapping(address => bool) public hostDelegates;
+    /// config contract
+    IBookadotConfig private configContract;
+    /// factory contract
+    IBookadotFactory private factoryContract;
+    /// ticket contract
     IBookadotTicket private ticket;
-    Booking[] public bookings; // bookings array
 
     /**
     @param _id Property Id
@@ -56,7 +62,7 @@ contract BookadotProperty is ReentrancyGuard {
         BookingParameters memory _params,
         bytes memory _signature
     ) private returns (bool) {
-        require(bookingsMap[_params.bookingId] == 0, "Property: Booking already exists");
+        require(bookings[_params.bookingId].guest == address(0), "Property: Booking already exists");
         require(block.timestamp < _params.bookingExpirationTimestamp, "Property: Booking data is expired");
         require(configContract.supportedTokens(_params.token), "Property: Token is not whitelisted");
         require(_params.checkInTimestamp + 1 days >= block.timestamp, "Property: Booking for past date is not allowed");
@@ -103,28 +109,26 @@ contract BookadotProperty is ReentrancyGuard {
         // Check if parameters are valid
         _validateBookingParameters(_params, _signature);
         address sender = msg.sender;
-        bookings.push();
-        uint256 bookingIndex = bookings.length - 1;
-        for (uint256 i = 0; i < _params.cancellationPolicies.length; i++) {
-            bookings[bookingIndex].cancellationPolicies.push(_params.cancellationPolicies[i]);
-        }
-        bookings[bookingIndex].id = _params.bookingId;
-        bookings[bookingIndex].checkInTimestamp = _params.checkInTimestamp;
-        bookings[bookingIndex].checkOutTimestamp = _params.checkOutTimestamp;
-        bookings[bookingIndex].balance = _params.bookingAmount;
-        bookings[bookingIndex].guest = sender;
-        bookings[bookingIndex].token = _params.token;
-        bookings[bookingIndex].status = BookingStatus.InProgress;
 
-        bookingsMap[_params.bookingId] = bookingIndex + 1;
+        Booking storage booking = bookings[_params.bookingId];
+        for (uint256 i = 0; i < _params.cancellationPolicies.length; i++) {
+            booking.cancellationPolicies.push(_params.cancellationPolicies[i]);
+        }
+        booking.id = _params.bookingId;
+        booking.checkInTimestamp = _params.checkInTimestamp;
+        booking.checkOutTimestamp = _params.checkOutTimestamp;
+        booking.balance = _params.bookingAmount;
+        booking.guest = sender;
+        booking.token = _params.token;
+        booking.status = BookingStatus.InProgress;
 
         _payin(_params.token, sender, _params.bookingAmount);
 
-        bookings[bookingIndex].ticketId = ticket.mint(sender);
-        bookings[bookingIndex].status = BookingStatus.InProgress;
+        booking.ticketId = ticket.mint(sender);
+        booking.status = BookingStatus.InProgress;
 
         // emit Book event
-        factoryContract.book(bookings[bookingIndex]);
+        factoryContract.book(booking);
     }
 
     function _updateBookingStatus(string calldata _bookingId, BookingStatus _status) internal {
@@ -134,13 +138,13 @@ contract BookadotProperty is ReentrancyGuard {
             _status == BookingStatus.FullyPaidOut ||
             _status == BookingStatus.EmergencyCancelled
         ) {
-            bookings[getBookingIndex(_bookingId)].balance = 0;
+            bookings[_bookingId].balance = 0;
         }
-        bookings[getBookingIndex(_bookingId)].status = _status;
+        bookings[_bookingId].status = _status;
     }
 
     function cancel(string calldata _bookingId) public nonReentrant {
-        Booking memory booking = bookings[getBookingIndex(_bookingId)];
+        Booking memory booking = bookings[_bookingId];
         require(booking.guest != address(0), "Property: Booking does not exist");
         require(booking.guest == msg.sender, "Property: Only the guest can cancel the booking");
         require(booking.balance > 0, "Property: Booking is already cancelled or paid out");
@@ -173,7 +177,7 @@ contract BookadotProperty is ReentrancyGuard {
     Any amount that has been paid out to the host or to the treasury through calls to `payout` will have to be refunded manually to the guest.
     */
     function cancelByHost(string calldata _bookingId) external nonReentrant onlyHostOrDelegate {
-        Booking memory booking = bookings[getBookingIndex(_bookingId)];
+        Booking memory booking = bookings[_bookingId];
         require(booking.guest != address(0), "Property: Booking does not exist");
         require(
             (booking.status == BookingStatus.InProgress || booking.status == BookingStatus.PartialPayOut) &&
@@ -199,8 +203,7 @@ contract BookadotProperty is ReentrancyGuard {
     is split between the host and treasury.
     */
     function payout(string calldata _bookingId) external nonReentrant {
-        uint256 idx = getBookingIndex(_bookingId);
-        Booking memory booking = bookings[idx];
+        Booking storage booking = bookings[_bookingId];
         require(booking.guest != address(0), "Property: Booking does not exist");
         require(booking.balance != 0, "Property: Booking is already cancelled or fully paid out");
 
@@ -228,7 +231,7 @@ contract BookadotProperty is ReentrancyGuard {
         require(toBePaid > 0, "Property: Invalid payout call");
 
         uint256 currentBalance = booking.balance - toBePaid;
-        bookings[idx].balance = currentBalance;
+        booking.balance = currentBalance;
 
         _updateBookingStatus(
             _bookingId,
@@ -263,26 +266,10 @@ contract BookadotProperty is ReentrancyGuard {
     }
 
     function totalBooking() external view returns (uint256) {
-        return bookings.length;
+        return ticket.totalSupply();
     }
 
-    function bookingHistory(uint256 _startIndex, uint256 _pageSize) external view returns (Booking[] memory) {
-        require(_startIndex < bookings.length, "Property: Booking index is out of bounds");
-        uint256 resultLength = _startIndex + _pageSize < bookings.length ? _pageSize : bookings.length - _startIndex;
-        Booking[] memory result = new Booking[](resultLength);
-        for (uint256 i = 0; i < resultLength; i++) {
-            result[i] = bookings[i + _startIndex];
-        }
-        return result;
-    }
-
-    function getBookingIndex(string memory _bookingId) public view returns (uint256) {
-        uint256 bookingId = bookingsMap[_bookingId];
-        require(bookingId > 0, "Property: Booking does not exist");
-        return bookingId - 1;
-    }
-
-    function getBooking(string memory _bookingId) external view returns (Booking memory) {
-        return bookings[getBookingIndex(_bookingId)];
+    function getBooking(string calldata _bookingId) external view returns (Booking memory) {
+        return bookings[_bookingId];
     }
 }

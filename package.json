@@ -6,7 +6,7 @@
     "scripts": {
         "prepublishOnly": "scripts/prepublish",
         "build": "scripts/build",
-        "generate": "ts-node scripts/generate_sdk.ts",
+        "codegen": "ts-node scripts/generate_sdk.ts",
         "clean": "rm -rf build/ cache/ dist/",
         "compile": "hardhat compile",
         "test": "scripts/test",

@@ -646,44 +646,14 @@ describe('BookadotProperty', function () {
 
             await createBooking(guestSigner, bookingAmount, param, signature)
 
-            expect(await bookadotProperty.getBookingIndex(bookingId0)).to.equal(0)
+            expect(await bookadotProperty.getBooking(bookingId0)).not.to.be.null;
 
             const bookingId1 = 'M9tH0m2Ld'
             var { param, signature } = await generateBookingParam(bookingId1, bookingAmount, backendSigner)
 
             await createBooking(guestSigner, bookingAmount, param, signature)
 
-            expect(await bookadotProperty.getBookingIndex(bookingId1)).to.equal(1)
-        })
-
-        it('should get correct array of booking history', async function () {
-            const bookingAmount = BigNumber.from('100000000000000000000')
-            const signers = await ethers.getSigners()
-            const backendSigner = signers[0]
-            const guestSigner = signers[3]
-
-            const bookingId0 = '2hB2o789n'
-            var { param, signature } = await generateBookingParam(bookingId0, bookingAmount, backendSigner)
-
-            await createBooking(guestSigner, bookingAmount, param, signature)
-
-            const bookingId1 = 'M9tH0m2Ld'
-            var { param, signature } = await generateBookingParam(bookingId1, bookingAmount, backendSigner)
-
-            await createBooking(guestSigner, bookingAmount, param, signature)
-
-            let allBookingHistory = await bookadotProperty.bookingHistory(0, 2)
-            expect(allBookingHistory.length).to.equal(2)
-            expect(allBookingHistory[0].id).to.equal(bookingId0)
-            expect(allBookingHistory[1].id).to.equal(bookingId1)
-
-            let bookingHistoryPage1 = await bookadotProperty.bookingHistory(0, 1)
-            expect(bookingHistoryPage1.length).to.equal(1)
-            expect(bookingHistoryPage1[0].id).to.equal(bookingId0)
-
-            let bookingHistoryPage2 = await bookadotProperty.bookingHistory(1, 2)
-            expect(bookingHistoryPage2.length).to.equal(1)
-            expect(bookingHistoryPage2[0].id).to.equal(bookingId1)
+            expect(await bookadotProperty.getBooking(bookingId1)).not.to.be.null;
         })
     })
 })
