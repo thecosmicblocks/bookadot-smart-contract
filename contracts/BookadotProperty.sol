@@ -106,41 +106,20 @@ contract BookadotProperty is ReentrancyGuard {
     @param _signature Signature of the transaction
     */
     function book(BookingParameters calldata _params, bytes calldata _signature) external payable nonReentrant {
-        // Check if parameters are valid
-        _validateBookingParameters(_params, _signature);
-        address sender = msg.sender;
-
-        Booking storage booking = bookings[_params.bookingId];
-        for (uint256 i = 0; i < _params.cancellationPolicies.length; i++) {
-            booking.cancellationPolicies.push(_params.cancellationPolicies[i]);
-        }
-        booking.id = _params.bookingId;
-        booking.checkInTimestamp = _params.checkInTimestamp;
-        booking.checkOutTimestamp = _params.checkOutTimestamp;
-        booking.balance = _params.bookingAmount;
-        booking.guest = sender;
-        booking.token = _params.token;
-        booking.status = BookingStatus.InProgress;
-
-        _payin(_params.token, sender, _params.bookingAmount);
-
-        booking.ticketId = ticket.mint(sender);
-        booking.status = BookingStatus.InProgress;
-
-        // emit Book event
-        factoryContract.book(booking);
+        _book(_params, _signature);
     }
 
-    function _updateBookingStatus(string calldata _bookingId, BookingStatus _status) internal {
-        if (
-            _status == BookingStatus.CancelledByGuest ||
-            _status == BookingStatus.CancelledByHost ||
-            _status == BookingStatus.FullyPaidOut ||
-            _status == BookingStatus.EmergencyCancelled
-        ) {
-            bookings[_bookingId].balance = 0;
+    /**
+    @param _params Booking data provided by oracle backend
+    @param _signature Signature of the transaction
+    */
+    function bulkBook(BookingParameters[] calldata _params, bytes[] calldata _signature) external payable nonReentrant {
+        require(_params.length == _signature.length, "Property: Invalid input length");
+        require(_params.length > 0, "Property: Empty input");
+        require(_params.length <= 10, "Property: Exceeds maximum limit");
+        for (uint8 i = 0; i < _params.length; i++) {
+            _book(_params[i], _signature[i]);
         }
-        bookings[_bookingId].status = _status;
     }
 
     function cancel(string calldata _bookingId) public nonReentrant {
@@ -246,6 +225,44 @@ contract BookadotProperty is ReentrancyGuard {
         _payout(booking.token, configContract.bookadotTreasury(), treasuryAmount);
 
         factoryContract.payout(_bookingId, hostAmount, treasuryAmount, block.timestamp, currentBalance == 0 ? 1 : 2);
+    }
+
+    function _updateBookingStatus(string calldata _bookingId, BookingStatus _status) internal {
+        if (
+            _status == BookingStatus.CancelledByGuest ||
+            _status == BookingStatus.CancelledByHost ||
+            _status == BookingStatus.FullyPaidOut ||
+            _status == BookingStatus.EmergencyCancelled
+        ) {
+            bookings[_bookingId].balance = 0;
+        }
+        bookings[_bookingId].status = _status;
+    }
+
+    function _book(BookingParameters calldata _params, bytes calldata _signature) internal {
+        // Check if parameters are valid
+        _validateBookingParameters(_params, _signature);
+        address sender = msg.sender;
+
+        Booking storage booking = bookings[_params.bookingId];
+        for (uint256 i = 0; i < _params.cancellationPolicies.length; i++) {
+            booking.cancellationPolicies.push(_params.cancellationPolicies[i]);
+        }
+        booking.id = _params.bookingId;
+        booking.checkInTimestamp = _params.checkInTimestamp;
+        booking.checkOutTimestamp = _params.checkOutTimestamp;
+        booking.balance = _params.bookingAmount;
+        booking.guest = sender;
+        booking.token = _params.token;
+        booking.status = BookingStatus.InProgress;
+
+        _payin(_params.token, sender, _params.bookingAmount);
+
+        booking.ticketId = ticket.mint(sender);
+        booking.status = BookingStatus.InProgress;
+
+        // emit Book event
+        factoryContract.book(booking);
     }
 
     function _payin(address _token, address _from, uint256 _amount) internal {

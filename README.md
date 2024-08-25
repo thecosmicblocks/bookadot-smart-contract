@@ -16,3 +16,8 @@ Ticket --> |add role| Marketplace[Marketplace]
 1. Config
 2. Ticket factory
 3. Factory
+
+
+
+- Property bookBatch
+- Ticket locked

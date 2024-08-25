@@ -92,7 +92,26 @@ describe('BookadotFactory', function () {
             const bookingId = '8NLm0Mtyojl'
 
             await expect(
-                bookadotFactory.book(bookingId)
+                bookadotFactory.book({
+                    token: ethers.constants.AddressZero,
+                    id: bookingId,
+                    ticketId: 1,
+                    checkInTimestamp: 12345678,
+                    checkOutTimestamp: 12345678,
+                    status: 1,
+                    balance: BigInt("123123123123312312312"),
+                    guest: hostAddress,
+                    cancellationPolicies: [
+                        {
+                            expiryTime: 123123123123,
+                            refundAmount: 123123123,
+                        },
+                        {
+                            expiryTime: 123123123123,
+                            refundAmount: 12312312312,
+                        },
+                    ],
+                })
             ).to.be.revertedWith('Factory: Property not found')
 
             await expect(

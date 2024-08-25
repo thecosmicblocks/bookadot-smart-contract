@@ -144,6 +144,34 @@ describe('BookadotProperty', function () {
             expect(await bookadotProperty.provider.getBalance(bookadotProperty.address)).to.equal(bookingAmount)
         })
 
+        it('Should bulk book successfully', async function () {
+            const bookingId0 = '2hB2o789n'
+            const bookingAmount0 = BigNumber.from('100000000000000000000')
+            const signers = await ethers.getSigners()
+            const backendSigner = signers[0]
+            let { param: param0, signature: signature0 } = await generateBookingParam(bookingId0, bookingAmount0, backendSigner)
+            let guestSigner = signers[3]
+
+            const bookingId1 = '1qdca2e2'
+            const bookingAmount1 = BigNumber.from('100000000000000000000')
+
+            await (
+                await bookadotConfig.addSupportedToken(
+                    NATIVE_TOKEN
+                )
+            ).wait()
+            let { param: param1, signature: signature1 } = await generateBookingParam(bookingId1, bookingAmount1, backendSigner, NATIVE_TOKEN)
+
+            await bulkCreateBooking(guestSigner, bookingAmount0, [param0, param1], [signature0, signature1], {
+                value: bookingAmount1
+            })
+
+            let booking0Data = await bookadotProperty.getBooking(bookingId0)
+            let booking1Data = await bookadotProperty.getBooking(bookingId1)
+            expect(booking0Data).to.be.not.undefined
+            expect(booking1Data).to.be.not.undefined
+        })
+
         it('should revert because of invalid signature', async function () {
             const bookingId = '2hB2o789n'
             const bookingAmount = BigNumber.from('100000000000000000000')
@@ -780,6 +808,31 @@ async function createBooking(
     }
     // @ts-ignore
     let bookingTx = await bookadotProperty.connect(guestSigner).book(...params)
+    return bookingTx.wait()
+}
+
+async function bulkCreateBooking(
+    guestSigner: SignerWithAddress,
+    bookingAmount: BigNumber,
+    param: BookingParametersStruct[],
+    signature: string[],
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
+): Promise<ContractReceipt> {
+    /// faucet to guest account
+    let faucetTx = await bookadotTokenTest.faucet(guestSigner.address, bookingAmount)
+    await faucetTx.wait()
+
+    /// use guest account to approve spending bookingAmount
+    let approveTx = await (bookadotTokenTest.connect(guestSigner)).approve(bookadotProperty.address, bookingAmount)
+    await approveTx.wait()
+
+    /// use guest account to call booking
+    const params = [param, signature] as any[]
+    if (overrides) {
+        params.push(overrides)
+    }
+    // @ts-ignore
+    let bookingTx = await bookadotProperty.connect(guestSigner).bulkBook(...params)
     return bookingTx.wait()
 }
 
