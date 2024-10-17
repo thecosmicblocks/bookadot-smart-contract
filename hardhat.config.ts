@@ -40,7 +40,7 @@ function getAccountPrivateKey() {
 function getDefaultProviderURL(network: string) {
     switch (network) {
         case 'moonbaseAlpha':
-            return 'https://rpc.testnet.moonbeam.network'
+            return 'https://rpc.api.moonbase.moonbeam.network'
         default:
             return `https://${network}.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`
     }

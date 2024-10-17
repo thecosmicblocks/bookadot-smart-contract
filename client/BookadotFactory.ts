@@ -44,9 +44,9 @@ function generateTicketData(owner: string, marketplace: string): string {
     ]
 
     const value = [
-        "Bookadot First Event",
-        "BFE",
-        "https://www.example.com/",
+        "Bookadot Early Access",
+        "BEA",
+        "https://cdn.thecosmicblock.com/tickets/",
         owner,
         marketplace,
         // bookadotPropertyAddr,
